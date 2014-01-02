@@ -1,0 +1,14 @@
+name: WeatherVote
+main: me.igwb.WeatherVote.WeatherVote
+version: 2.0
+commands:
+   voteSun:
+      description: Vote for no rain.
+      usage: /voteSun 
+      permission: WeatherVote.use
+      permission-message: You don't have permission to use WeatherVote!
+   voteRain:
+      description: Vote for rain
+      usage: /voteRain
+      permission: WeatherVote.use
+      permission-message: You don't have permission to use WeatherVote!

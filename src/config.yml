@@ -1,0 +1,6 @@
+Debug: false
+Worlds:
+ - world
+FailChance: 25
+TimeToVote: 30
+Version: 5
