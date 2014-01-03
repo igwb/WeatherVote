@@ -1,4 +1,4 @@
- /* WeatherVote
+/* WeatherVote
     Copyright (C) 2014 Bodo Beyer
 
     This program is free software: you can redistribute it and/or modify
@@ -13,37 +13,65 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
 package me.igwb.WeatherVote;
 
 import java.util.ArrayList;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 
 public class VoteManager {
 
+    private WeatherVote parent;
+
     private boolean voteInProgress;
     private int sunVotes, rainVotes;
     private ArrayList<String> voters;
+    private World voteWorld;
+    private WeatherInformation eventInformation;
 
-    public VoteManager() {
 
+    public VoteManager(WeatherVote parentPlugin, World world, WeatherInformation information) {
+
+        parent = parentPlugin;
+
+        voters = new ArrayList<String>();
+        voteWorld = world;
+        eventInformation = information;
     }
 
     /***
      * Initiates a new vote.
+     * @param duration How long the users can world.
      */
-    public void startVote() {
-        voters = new ArrayList<String>();
-        sunVotes = 0;
-        rainVotes = 0;
+    protected void startVote(Integer duration) {
+
         voteInProgress = true;
+
+        startTimer(parent.getFileConfig().getInt("TimeToVote"));
+
+        parent.messageAllPlayers(parent.getLocale().getMessage("formation_starts"), voteWorld);
+        parent.messageAllPlayers(parent.getLocale().getMessage("time_to_vote").replaceAll("%time_to_vote", String.valueOf(parent.getFileConfig().getInt("TimeToVote"))), voteWorld);
     }
 
     /***
      * Ends a vote.
      */
-    public void endVote() {
+    protected void endVote() {
         voteInProgress = false;
+
+        if (getRainVotes() >= getSunVotes()) {
+            voteWorld.setStorm(true);
+            voteWorld.setWeatherDuration(eventInformation.getRainDuration());
+            voteWorld.setThundering(eventInformation.getThundering());
+            voteWorld.setThunderDuration(eventInformation.getThunderDuration());
+
+
+            parent.messageAllPlayers(parent.getLocale().getMessage("vote_fail"), voteWorld);
+        } else {
+            parent.messageAllPlayers(parent.getLocale().getMessage("vote_success"), voteWorld);
+        }
     }
 
     /***
@@ -99,5 +127,28 @@ public class VoteManager {
      */
     public int getRainVotes() {
         return rainVotes;
+    }
+
+    private void theTimeIsUp() {
+        parent.theTimeIsUp(this);
+    }
+
+
+    /***
+     * Starts a timer and class the theTimeIsUp() method once the time is up.
+     * @param duration Duration in seconds.
+     */
+    public void startTimer(Integer duration) {
+        parent.getServer().getScheduler().scheduleSyncDelayedTask(parent, new Runnable() {
+            @Override
+            public void run() {
+                theTimeIsUp();
+            }
+        }, duration * 20L);
+    }
+
+
+    public World getVoteWorld() {
+        return voteWorld;
     }
 }

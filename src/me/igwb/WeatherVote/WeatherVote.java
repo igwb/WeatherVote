@@ -17,8 +17,11 @@
 package me.igwb.WeatherVote;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -30,25 +33,35 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class WeatherVote extends JavaPlugin implements Listener {
 
-    private static Integer CONFIG_VERSION = 4;
-    private VoteManager voteManager;
+    private static Integer CONFIG_VERSION = 5;
     private LocaleManager locale;
     private CommandListener commandExecutor;
-    private WeatherInformation lastEventInformation;
+    private Logger log;
+    private ArrayList<VoteManager> voteManagers;
 
     @Override
     public void onEnable() {
 
-        this.getLogger().setLevel(Level.FINEST);
-
         getFileConfig();
 
         locale = new LocaleManager(new File(this.getDataFolder() + "/locale.properties"));
-        voteManager = new VoteManager();
         commandExecutor = new CommandListener(this);
+
+        voteManagers = new ArrayList<VoteManager>();
 
         registerEvents();
         registerCommands();
+
+        try {
+            Metrics metrics = new Metrics(this);
+            if (metrics.start()) {
+                getLogger().log(Level.INFO, "Now submitting data to http://mcstats.org for " + this.getDescription().getName() + " Thank you!");
+            } else {
+                getLogger().log(Level.INFO, "No data is beeing submitted to http://mcstats.org");
+            }
+        } catch (IOException e) {
+            getLogger().log(Level.SEVERE, "Could not submit stats to mcstats.org");
+        }
     }
 
     private void registerEvents() {
@@ -60,10 +73,6 @@ public class WeatherVote extends JavaPlugin implements Listener {
         this.getCommand("voteRain").setExecutor(commandExecutor);
     }
 
-    protected VoteManager getVoteManager() {
-
-        return voteManager;
-    }
 
     public FileConfiguration getFileConfig() {
 
@@ -79,8 +88,46 @@ public class WeatherVote extends JavaPlugin implements Listener {
         return config;
     }
 
+    /***
+     * Returns the vote managers used for a specific world. Or null if no vote is in progress there.
+     * @param worldName The world to get the VoteManager from.
+     * @return The VoteManager or null
+     */
+    protected VoteManager getVoteManager(String worldName) {
+
+
+        for (VoteManager vote : voteManagers) {
+            if (vote.getVoteWorld().getName().equals(worldName)) {
+                getLogger().log(Level.INFO, "Vote manager found for " + worldName);
+                return vote;
+            }
+        }
+        getLogger().log(Level.INFO, "Vote manager not found for " + worldName);
+        return null;
+    }
+
+    protected void theTimeIsUp(VoteManager vm) {
+
+        vm.endVote();
+        voteManagers.remove(vm);
+    }
+
+    /***
+     * Sends a message to all players in a specific world.
+     * @param message The message to send.
+     * @param world The world in which the players should get the message.
+     */
+    protected void messageAllPlayers(String message, World world) {
+
+        for (Player p : world.getPlayers()) {
+            p.sendMessage(message);
+        }
+    }
+
     @EventHandler
     public void onWeatherChange(WeatherChangeEvent event) {
+
+        Boolean voteInProgress = false;
 
         //Check if the world is enabled
         if (getFileConfig().getStringList("Worlds").contains(event.getWorld().getName())) {
@@ -88,21 +135,23 @@ public class WeatherVote extends JavaPlugin implements Listener {
             if (event.toWeatherState()) {
                 Random r = new Random();
 
+                //Check if there is a vote in progress in that world. Abort if so.
+                for (VoteManager vote : voteManagers) {
+                    voteInProgress = !voteInProgress && !vote.getVoteWorld().getName().equals(event.getWorld().getName());
+                }
 
-                if (r.nextInt(100) <= getFileConfig().getInt("FailChance")) {
-                    if (!voteManager.getVoteInProgress()) {
+                if (voteInProgress) {
+                    return;
+                }
 
-                        lastEventInformation = new WeatherInformation(event.getWorld(), event.toWeatherState(), event.toWeatherState(), event.getWorld().isThundering(), event.getWorld().getWeatherDuration(), event.getWorld().getThunderDuration());
-                        event.setCancelled(true);
+                if (r.nextInt(100) >= getFileConfig().getInt("FailChance")) {
 
-                        //Start the vote and notify the players in the world the event takes place
-                        voteManager.startVote();
-                        messageAllPlayers(locale.getMessage("formation_starts"), event.getWorld());
-                        messageAllPlayers(locale.getMessage("time_to_vote").replaceAll("%time_to_vote", String.valueOf(getFileConfig().getInt("TimeToVote"))), event.getWorld());
 
-                        //Start the timer
-                        startTimer(getFileConfig().getInt("TimeToVote"));
-                    }
+                    VoteManager vm = new VoteManager(this, event.getWorld(), new WeatherInformation(event.getWorld(), event.toWeatherState(), event.toWeatherState(), event.getWorld().isThundering(), event.getWorld().getWeatherDuration(), event.getWorld().getThunderDuration()));
+
+                    vm.startVote(getFileConfig().getInt("TimeToVote"));
+                    voteManagers.add(vm);
+                    event.setCancelled(true);
                 } else {
                     messageAllPlayers(locale.getMessage("storm_too_strong"), event.getWorld());
                 }
@@ -111,51 +160,7 @@ public class WeatherVote extends JavaPlugin implements Listener {
         }
     }
 
-    /***
-     * Sends a message to all players in a specific world.
-     * @param message The message to send.
-     * @param world The world in which the players should get the message.
-     */
-    private void messageAllPlayers(String message, World world) {
 
-        for (Player p : world.getPlayers()) {
-            p.sendMessage(message);
-        }
-    }
-
-    private void theTimeIsUp() {
-        voteManager.endVote();
-        if (voteManager.getRainVotes() >= voteManager.getSunVotes()) {
-            lastEventInformation.getWorld().setStorm(true);
-            lastEventInformation.getWorld().setWeatherDuration(lastEventInformation.getRainDuration());
-            lastEventInformation.getWorld().setThundering(lastEventInformation.getThundering());
-            lastEventInformation.getWorld().setThunderDuration(lastEventInformation.getThunderDuration());
-
-            getLogger().log(Level.INFO, "test");
-            getLogger().setLevel(Level.FINEST);
-            getLogger().log(Level.FINEST, "Raining: " + lastEventInformation.getRaining());
-            getLogger().log(Level.FINEST, "Rain duration: " + lastEventInformation.getRainDuration());
-            getLogger().log(Level.FINEST, "Thundering: " + lastEventInformation.getThundering());
-            getLogger().log(Level.FINEST, "Thunder duration: " + lastEventInformation.getThunderDuration());
-
-            messageAllPlayers(locale.getMessage("vote_fail"), lastEventInformation.getWorld());
-        } else {
-            messageAllPlayers(locale.getMessage("vote_success"), lastEventInformation.getWorld());
-        }
-    }
-
-    /***
-     * Starts a timer and class the theTimeIsUp() method once the time is up.
-     * @param duration Duration in seconds.
-     */
-    public void startTimer(Integer duration) {
-        this.getServer().getScheduler().scheduleSyncDelayedTask(this, new Runnable() {
-            @Override
-            public void run() {
-                theTimeIsUp();
-            }
-        }, duration * 20L);
-    }
 
 
     public LocaleManager getLocale() {
