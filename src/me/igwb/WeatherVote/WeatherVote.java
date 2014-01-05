@@ -98,11 +98,15 @@ public class WeatherVote extends JavaPlugin implements Listener {
 
         for (VoteManager vote : voteManagers) {
             if (vote.getVoteWorld().getName().equals(worldName)) {
-                getLogger().log(Level.INFO, "Vote manager found for " + worldName);
+                if (getFileConfig().getBoolean("Debug")) {
+                    getLogger().log(Level.INFO, "Vote manager found for " + worldName);
+                }
                 return vote;
             }
         }
-        getLogger().log(Level.INFO, "Vote manager not found for " + worldName);
+        if (getFileConfig().getBoolean("Debug")) {
+            getLogger().log(Level.INFO, "Vote manager not found for " + worldName);
+        }
         return null;
     }
 
@@ -127,17 +131,34 @@ public class WeatherVote extends JavaPlugin implements Listener {
     @EventHandler
     public void onWeatherChange(WeatherChangeEvent event) {
 
+        Random r = new Random();
         Boolean voteInProgress = false;
 
         //Check if the world is enabled
         if (getFileConfig().getStringList("Worlds").contains(event.getWorld().getName())) {
             //Check if it's going to rain
             if (event.toWeatherState()) {
-                Random r = new Random();
+
+
+                if (getFileConfig().getInt("RainTime.longest") == 0) {
+                    event.setCancelled(true);
+                    if (getFileConfig().getBoolean("debug")) {
+                        getLogger().log(Level.INFO, "Rain event cancelled.");
+                    }
+                    return;
+                }
+
 
                 //Check if there is a vote in progress in that world. Abort if so.
                 for (VoteManager vote : voteManagers) {
-                    voteInProgress = !voteInProgress && !vote.getVoteWorld().getName().equals(event.getWorld().getName());
+                    if (vote.getVoteWorld().getName().equals(event.getWorld().getName())) {
+                        voteInProgress = true;
+                        continue;
+                    }
+                }
+
+                if (getFileConfig().getBoolean("Debug")) {
+                    getLogger().log(Level.INFO, "Is vote in progress: " + voteInProgress + " " + event.getWorld().getName());
                 }
 
                 if (voteInProgress) {
@@ -155,12 +176,27 @@ public class WeatherVote extends JavaPlugin implements Listener {
                 } else {
                     messageAllPlayers(locale.getMessage("storm_too_strong"), event.getWorld());
                 }
+            } else {
+                if (getFileConfig().getInt("SunTime.longest") == 0) {
+                    event.setCancelled(true);
+                    if (getFileConfig().getBoolean("debug")) {
+                        getLogger().log(Level.INFO, "Sun event cancelled.");
+                    }
+                    return;
+                }
+                Integer duration;
+
+                duration = r.nextInt((getFileConfig().getInt("SunTime.longest") - getFileConfig().getInt("SunTime.shortest")) + 1) + getFileConfig().getInt("SunTime.shortest");
+
+                event.getWorld().setWeatherDuration(duration * 20);
+
+                if (getFileConfig().getBoolean("debug")) {
+                    getLogger().log(Level.INFO, "The sun will shine in " + event.getWorld().getName() + " for " + duration + " seconds.");
+                }
             }
 
         }
     }
-
-
 
 
     public LocaleManager getLocale() {

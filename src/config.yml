@@ -2,5 +2,17 @@ Worlds:
  - world
 FailChance: 25
 TimeToVote: 30
+#Set the longest or shortest time it will rain in seconds.
+#Defaults: shortest 600 (10 minutes) longest 1200 (20 minutes)
+#Setting the longest possible value to 0 will disable that weather state.
+RainTime:
+   shortest: 600
+   longest: 1200
+#Set the longest or shortest time the sun will shine in seconds.
+#Defaults: shortest 600 (10 minutes) longest 9000 (150 minutes)
+#Setting the longest possible value to 0 will disable that weather state.
+SunTime:
+   shortest: 600
+   longest: 9000
 debug: false
 Version: 5

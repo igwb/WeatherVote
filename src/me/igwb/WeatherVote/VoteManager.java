@@ -17,6 +17,9 @@
 package me.igwb.WeatherVote;
 
 import java.util.ArrayList;
+import java.util.Random;
+import java.util.logging.Level;
+
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -59,14 +62,22 @@ public class VoteManager {
      * Ends a vote.
      */
     protected void endVote() {
+        Integer duration;
+        Random r = new Random();
+
+        duration = r.nextInt((parent.getFileConfig().getInt("RainTime.longest") - parent.getFileConfig().getInt("RainTime.shortest")) + 1) + parent.getFileConfig().getInt("RainTime.shortest");
+
         voteInProgress = false;
 
         if (getRainVotes() >= getSunVotes()) {
             voteWorld.setStorm(true);
-            voteWorld.setWeatherDuration(eventInformation.getRainDuration());
+            voteWorld.setWeatherDuration(duration * 20);
             voteWorld.setThundering(eventInformation.getThundering());
-            voteWorld.setThunderDuration(eventInformation.getThunderDuration());
+            voteWorld.setThunderDuration(Math.min(eventInformation.getThunderDuration(), duration * 20));
 
+            if (parent.getFileConfig().getBoolean("debug")) {
+                parent.getLogger().log(Level.INFO, "It will rain in " + voteWorld.getName() + " for " + duration + " seconds.");
+            }
 
             parent.messageAllPlayers(parent.getLocale().getMessage("vote_fail"), voteWorld);
         } else {
