@@ -51,6 +51,7 @@ public class LocaleManager {
                 out.write("vote_multiple= §a[WeatherVote] §4You can only vote once!" + "\n");
                 out.write("no_vote_in_progress= §a[WeatherVote] §4No vote in progress!" + "\n");
                 out.write("vote_no_permission= §a[WeatherVote] §4Insufficient permissions!" + "\n");
+                out.write("playeronly= This command can only be run by a player!" + "\n");
 
                 out.close();
             }

@@ -25,76 +25,68 @@ public class CommandListener implements CommandExecutor {
     private WeatherVote parentPlugin;
 
     public CommandListener(WeatherVote parent) {
+        
         parentPlugin = parent;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 
-        VoteManager vm;
+        VoteManager vm = null;
+        VoteType voteType = null;
 
+        //Check if we are dealing with a player
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(parentPlugin.getLocale().getMessage("playeronly"));
+            return true;
+        }
+
+        //Determine the votetype
         switch (command.getName().toLowerCase()) {
         case "votesun":
-            if (sender instanceof Player) {
-                if (sender.hasPermission(parentPlugin.getCommand("votesun").getPermission())) {
-                    vm = parentPlugin.getVoteManager(((Player) sender).getWorld().getName());
-
-                    if (vm != null) {
-                        switch (vm.castVote(sender.getName(), VoteType.sun)) {
-                        case success:
-                            sender.sendMessage(parentPlugin.getLocale().getMessage("vote_registered_no"));
-                            break;
-                        case double_vote:
-                            sender.sendMessage(parentPlugin.getLocale().getMessage("vote_multiple"));
-                            break;
-                        case no_vote_in_progress:
-                            sender.sendMessage(parentPlugin.getLocale().getMessage("no_vote_in_progress"));
-                            break;
-                        default:
-                            break;
-                        }
-                    } else {
-                        sender.sendMessage(parentPlugin.getLocale().getMessage("no_vote_in_progress"));
-                    }
-                } else {
-                    sender.sendMessage(parentPlugin.getLocale().getMessage("vote_no_permission"));
-                }
+            if (sender.hasPermission(parentPlugin.getCommand("votesun").getPermission())) {
+                voteType = VoteType.sun;
             } else {
-                sender.sendMessage("This command can only be run by a player!");
+                sender.sendMessage(parentPlugin.getLocale().getMessage("vote_no_permission"));
+                return true;
             }
-            return true;
-        case "voterain":
-            if (sender instanceof Player) {
-                if (sender.hasPermission(parentPlugin.getCommand("voterain").getPermission())) {
-                    vm = parentPlugin.getVoteManager(((Player) sender).getWorld().getName());
-                    if (vm != null) {
-                        switch (vm.castVote(sender.getName(), VoteType.rain)) {
-                        case success:
-                            sender.sendMessage(parentPlugin.getLocale().getMessage("vote_registered_yes"));
-                            break;
-                        case double_vote:
-                            sender.sendMessage(parentPlugin.getLocale().getMessage("vote_multiple"));
-                            break;
-                        case no_vote_in_progress:
-                            sender.sendMessage(parentPlugin.getLocale().getMessage("no_vote_in_progress"));
-                            break;
-                        default:
-                            break;
-                        }
-                    } else {
-                        sender.sendMessage(parentPlugin.getLocale().getMessage("no_vote_in_progress"));
-                    }
-                } else {
-                    sender.sendMessage(parentPlugin.getLocale().getMessage("vote_no_permission"));
-                }
-            } else {
-                sender.sendMessage("This command can only be run by a player!");
-            }
-            return true;
-        default:
             break;
+
+        case "voterain":
+            if (sender.hasPermission(parentPlugin.getCommand("voterain").getPermission())) {
+                voteType = VoteType.rain;
+            } else {
+                sender.sendMessage(parentPlugin.getLocale().getMessage("vote_no_permission"));
+                return true;
+            }
+            break;
+        default:
+            return true;
         }
-        return false;
+
+        //Get the VoteManager if any.
+        vm = parentPlugin.getVoteManager(((Player) sender).getWorld().getName());
+
+        //Cast the vote if possible.
+        if (vm != null) {
+            switch (vm.castVote(sender.getName(), voteType)) {
+            case success:
+                sender.sendMessage(parentPlugin.getLocale().getMessage("vote_registered_no"));
+                break;
+            case double_vote:
+                sender.sendMessage(parentPlugin.getLocale().getMessage("vote_multiple"));
+                break;
+            case no_vote_in_progress:
+                sender.sendMessage(parentPlugin.getLocale().getMessage("no_vote_in_progress"));
+                break;
+            default:
+                break;
+            }
+        } else {
+            sender.sendMessage(parentPlugin.getLocale().getMessage("no_vote_in_progress"));
+        }
+
+        return true;
     }
 
 }

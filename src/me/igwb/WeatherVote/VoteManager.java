@@ -17,10 +17,7 @@ package me.igwb.WeatherVote;
 
 import java.util.ArrayList;
 import java.util.Random;
-import java.util.logging.Level;
-
 import org.bukkit.World;
-import org.bukkit.entity.Player;
 
 
 public class VoteManager {
