@@ -1,6 +1,6 @@
 name: WeatherVote
 main: me.igwb.WeatherVote.WeatherVote
-version: 2.0
+version: 2.1
 commands:
    voteSun:
       description: Vote for no rain.
