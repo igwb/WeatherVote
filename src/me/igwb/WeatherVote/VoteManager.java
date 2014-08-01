@@ -33,7 +33,6 @@ public class VoteManager {
     private World voteWorld;
     private WeatherInformation eventInformation;
 
-
     public VoteManager(WeatherVote parentPlugin, World world, WeatherInformation information) {
 
         parent = parentPlugin;
@@ -41,6 +40,8 @@ public class VoteManager {
         voters = new ArrayList<String>();
         voteWorld = world;
         eventInformation = information;
+
+
     }
 
     /***
@@ -48,6 +49,8 @@ public class VoteManager {
      * @param duration How long the users can world.
      */
     protected void startVote(Integer duration) {
+
+        parent.LogDebug("Starting new Vote in " + voteWorld.getName());
 
         voteInProgress = true;
 
@@ -61,6 +64,8 @@ public class VoteManager {
      * Ends a vote.
      */
     protected void endVote() {
+        parent.LogDebug("Ending vote in " + voteWorld.getName());
+
         Integer duration;
         Random r = new Random();
 
@@ -74,12 +79,12 @@ public class VoteManager {
             voteWorld.setThundering(eventInformation.getThundering());
             voteWorld.setThunderDuration(Math.min(eventInformation.getThunderDuration(), duration * 20));
 
-            if (parent.getFileConfig().getBoolean("debug")) {
-                parent.getLogger().log(Level.INFO, "It will rain in " + voteWorld.getName() + " for " + duration + " seconds.");
-            }
+            parent.LogDebug("It will rain in " + voteWorld.getName() + " for " + duration + " seconds.");
 
             parent.messageAllPlayers(parent.getLocale().getMessage("vote_fail"), voteWorld);
         } else {
+            parent.LogDebug("The sun will shine for " + voteWorld.getWeatherDuration());
+
             parent.messageAllPlayers(parent.getLocale().getMessage("vote_success"), voteWorld);
         }
     }
@@ -95,13 +100,14 @@ public class VoteManager {
     /***
      * Casts a vote for a player.
      * @param voter Name of the player who voted.
-     * @param pro Did he vote pro?
+     * @param vote What type of vote did he cast?
      * @return Returns whatever happened.
      */
     public CastVoteResult castVote(String voter, VoteType vote) {
 
         //Return if there is nothing to vote for
         if (!voteInProgress) {
+            parent.LogDebug(voter + " failed to vote in " + voteWorld.getName() + " because no vote was in progress!");
             return CastVoteResult.no_vote_in_progress;
         }
 
@@ -109,15 +115,20 @@ public class VoteManager {
         if (!voters.contains(voter)) {
             switch (vote) {
             case sun:
+                parent.LogDebug(voter + " voted for sun in " + voteWorld.getName());
                 sunVotes++;
                 break;
             case rain:
+                parent.LogDebug(voter + " voted for rain in " + voteWorld.getName());
                 rainVotes++;
                 break;
             default:
                 break;
             }
+
+            voters.add(voter);
         } else {
+            parent.LogDebug(voter + " attempted to vote twice in " + voteWorld.getName());
             return CastVoteResult.double_vote;
         }
         return CastVoteResult.success;

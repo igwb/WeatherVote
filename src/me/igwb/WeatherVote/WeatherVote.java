@@ -43,6 +43,8 @@ public class WeatherVote extends JavaPlugin implements Listener {
 
         getFileConfig();
 
+        LogDebug("Debug mode enabled");
+
         locale = new LocaleManager(new File(this.getDataFolder() + "/locale.properties"));
         commandExecutor = new CommandListener(this);
 
@@ -97,15 +99,15 @@ public class WeatherVote extends JavaPlugin implements Listener {
 
         for (VoteManager vote : voteManagers) {
             if (vote.getVoteWorld().getName().equals(worldName)) {
-                if (getFileConfig().getBoolean("Debug")) {
-                    getLogger().log(Level.INFO, "Vote manager found for " + worldName);
-                }
+
+                LogDebug("Vote manager found for " + worldName);
+
                 return vote;
             }
         }
-        if (getFileConfig().getBoolean("Debug")) {
-            getLogger().log(Level.INFO, "Vote manager not found for " + worldName);
-        }
+
+        LogDebug("Vote manager not found for " + worldName);
+
         return null;
     }
 
@@ -141,9 +143,9 @@ public class WeatherVote extends JavaPlugin implements Listener {
 
                 if (getFileConfig().getInt("RainTime.longest") == 0) {
                     event.setCancelled(true);
-                    if (getFileConfig().getBoolean("debug")) {
-                        getLogger().log(Level.INFO, "Rain event cancelled.");
-                    }
+
+                    LogDebug("Rain event cancelled.");
+
                     return;
                 }
 
@@ -156,9 +158,7 @@ public class WeatherVote extends JavaPlugin implements Listener {
                     }
                 }
 
-                if (getFileConfig().getBoolean("Debug")) {
-                    getLogger().log(Level.INFO, "Is vote in progress: " + voteInProgress + " " + event.getWorld().getName());
-                }
+                LogDebug("Is vote in progress: " + voteInProgress + " " + event.getWorld().getName());
 
                 if (voteInProgress) {
                     return;
@@ -178,9 +178,8 @@ public class WeatherVote extends JavaPlugin implements Listener {
             } else {
                 if (getFileConfig().getInt("SunTime.longest") == 0) {
                     event.setCancelled(true);
-                    if (getFileConfig().getBoolean("debug")) {
-                        getLogger().log(Level.INFO, "Sun event cancelled.");
-                    }
+
+                    LogDebug("Sun event cancelled.");
                     return;
                 }
                 Integer duration;
@@ -189,14 +188,19 @@ public class WeatherVote extends JavaPlugin implements Listener {
 
                 event.getWorld().setWeatherDuration(duration * 20);
 
-                if (getFileConfig().getBoolean("debug")) {
-                    getLogger().log(Level.INFO, "The sun will shine in " + event.getWorld().getName() + " for " + duration + " seconds.");
-                }
+                LogDebug("The sun will shine in " + event.getWorld().getName() + " for " + duration + " seconds.");
             }
 
         }
     }
 
+
+    public void LogDebug(String msg) {
+
+        if (getFileConfig().getBoolean("debug")) {
+            getLogger().log(Level.INFO, msg);
+        }
+    }
 
     public LocaleManager getLocale() {
         return locale;
