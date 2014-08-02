@@ -14,5 +14,13 @@ RainTime:
 SunTime:
    shortest: 600
    longest: 9000
+#Should the plugin check for updates?
+#If an update is found the plugin will leave a message in the console.
+#The update will NOT be downloaded by the plugin.
+checkForUpdates: true
+#Do you allow metric collection and submission to mcstats.org?
+#For more information see http://dev.bukkit.org/bukkit-plugins/weathervote/pages/metrics/
+collectMetrics: true
 debug: false
-Version: 5
+#Please don't touch this <3
+Version: 6

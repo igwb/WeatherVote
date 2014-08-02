@@ -32,14 +32,27 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class WeatherVote extends JavaPlugin implements Listener {
 
-    private static Integer CONFIG_VERSION = 5;
+    public static Integer CONFIG_VERSION = 6;
+    public static String PLUGINVERSION = "v2.1";
+
+    public Boolean needsUpdating = false;
+    public Boolean updateCheckSuccessful = false;
+
     private LocaleManager locale;
     private CommandListener commandExecutor;
     private Logger log;
     private ArrayList<VoteManager> voteManagers;
 
+    private Thread updateThread;
+
     @Override
     public void onEnable() {
+
+        Boolean firstRun;
+
+        File f = new File(this.getDataFolder().getPath().toString() + "\\config.yml");
+
+        firstRun = !f.exists();
 
         getFileConfig();
 
@@ -53,15 +66,49 @@ public class WeatherVote extends JavaPlugin implements Listener {
         registerEvents();
         registerCommands();
 
-        try {
-            Metrics metrics = new Metrics(this);
-            if (metrics.start()) {
-                getLogger().log(Level.INFO, "Now submitting data to http://mcstats.org for " + this.getDescription().getName() + " Thank you!");
+        if (!firstRun) {
+
+            if (getConfig().getBoolean("checkForUpdates")) {
+                updateThread = new Thread(new UpdateChecker(this));
+                updateThread.run();
+
+                notifyAboutUpdate();
             } else {
-                getLogger().log(Level.INFO, "No data is beeing submitted to http://mcstats.org");
+
+                getLogger().log(Level.INFO, "Automatic update checking disabled. You're on your own now.");
             }
-        } catch (IOException e) {
-            getLogger().log(Level.SEVERE, "Could not submit stats to mcstats.org");
+
+            try {
+                Metrics metrics = new Metrics(this);
+                if (getConfig().getBoolean("collectMetrics") && metrics.start()) {
+                    getLogger().log(Level.INFO, "Now submitting data to http://mcstats.org for " + this.getDescription().getName() + " Thank you :)");
+                } else {
+                    getLogger().log(Level.INFO, "No data is beeing submitted to http://mcstats.org :'(");
+                }
+            } catch (IOException e) {
+                getLogger().log(Level.SEVERE, "Could not submit stats to mcstats.org");
+            }
+        } else {
+            getLogger().log(Level.INFO, "No data is submitted to http://mcstats.org on the first run. Please disable it in the config if you wish to keep it that way.");
+            getLogger().log(Level.INFO, "Not checking for updates on the first run. Please disable it in the config if you wish to keep it that way.");
+        }
+    }
+
+    private void notifyAboutUpdate() {
+        if (getConfig().getBoolean("checkForUpdates")) {
+            LogDebug("Alive?: " + updateThread.isAlive());
+            if (!updateThread.isAlive()) {
+                LogDebug("Successful=: " + updateCheckSuccessful);
+
+                if (!updateCheckSuccessful) {
+                    getLogger().log(Level.WARNING, "Could not check for updates");
+                    return;
+                }
+
+                if (needsUpdating) {
+                    getLogger().log(Level.INFO, "There is an update available for WeatherVote at http://dev.bukkit.org/bukkit-plugins/weathervote/");
+                }
+            }
         }
     }
 
@@ -131,6 +178,8 @@ public class WeatherVote extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onWeatherChange(WeatherChangeEvent event) {
+
+        notifyAboutUpdate();
 
         Random r = new Random();
         Boolean voteInProgress = false;
