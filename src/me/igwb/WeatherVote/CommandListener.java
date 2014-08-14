@@ -71,7 +71,11 @@ public class CommandListener implements CommandExecutor {
         if (vm != null) {
             switch (vm.castVote(sender.getName(), voteType)) {
             case success:
-                sender.sendMessage(parentPlugin.getLocale().getMessage("vote_registered_no"));
+                if (command.getName().toLowerCase().equals("votesun")) {
+                    sender.sendMessage(parentPlugin.getLocale().getMessage("vote_registered_no"));
+                } else {
+                    sender.sendMessage(parentPlugin.getLocale().getMessage("vote_registered_yes"));
+                }
                 break;
             case double_vote:
                 sender.sendMessage(parentPlugin.getLocale().getMessage("vote_multiple"));
