@@ -25,7 +25,7 @@ public class CommandListener implements CommandExecutor {
     private WeatherVote parentPlugin;
 
     public CommandListener(WeatherVote parent) {
-        
+
         parentPlugin = parent;
     }
 

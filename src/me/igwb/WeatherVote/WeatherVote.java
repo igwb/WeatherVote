@@ -33,7 +33,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class WeatherVote extends JavaPlugin implements Listener {
 
     public static Integer CONFIG_VERSION = 6;
-    public static String PLUGINVERSION = "v2.1";
+    public static String PLUGINVERSION = "v2.2";
 
     public Boolean needsUpdating = false;
     public Boolean updateCheckSuccessful = false;
